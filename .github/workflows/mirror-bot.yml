@@ -20,26 +20,24 @@ jobs:
 
       - name: Set Git Configs & Secrets
         run: |
-          git config --global user.email ${GitHubMail}
-          git config --global user.name ${GitHubName}
+          git config --global user.email cattobots@gmail.com
+          git config --global user.name CattoBots
           git config --global credential.helper store
-          echo "https://${GitHubName}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
+          echo "https://CattoBots:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
 
-      - name: Clone Mirror Repo
+      - name: Login to Docker Hub or Alternative
         run: |
-          git clone https://${GitHubName}:${{ secrets.GH_TOKEN }}@github.com/${{ secrets.REPO }} source
+          echo ${{ secrets.HUB_TOKEN }} | docker login ${{ secrets.DOCKER_HUB_URL }} -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
 
-      - name: Compile Docker
+      - name: Pull Docker Container
         run: |
-          cd source || exit 1
-          docker container prune --force || true
-          docker build . --rm --force-rm --compress --no-cache=true --pull --file Dockerfile -t mirror-bot
+          docker pull ${{ secrets.DOCKER_HUB_URL }}/${{ secrets.DOCKER_REPO }}
 
       - name: Run bot
         continue-on-error: true
         timeout-minutes: 340
         run: |
-          docker run --privileged --rm -i mirror-bot
+          docker run --privileged --rm -i ${{ secrets.DOCKER_HUB_URL }}/${{ secrets.DOCKER_REPO }}:latest
 
       - name: Loop Workflow
         continue-on-error: true
@@ -51,4 +49,3 @@ jobs:
           git add loop.txt
           git commit -m "Workflow : Loop"
           git push -q https://${{ secrets.GH_TOKEN }}@github.com/${GITHUB_REPOSITORY} HEAD:main
-
